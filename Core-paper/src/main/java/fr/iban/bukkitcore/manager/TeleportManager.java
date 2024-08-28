@@ -2,8 +2,8 @@ package fr.iban.bukkitcore.manager;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import com.github.puregero.multilib.MultiLib;
+import com.github.puregero.multilib.regionized.RegionizedScheduler;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.bukkitcore.event.PlayerPreTeleportEvent;
 import fr.iban.bukkitcore.plan.PlanDataManager;
@@ -20,16 +20,17 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class TeleportManager {
 
     private final CoreBukkitPlugin plugin;
-    private final ListMultimap<UUID, TpRequest> tpRequests = ArrayListMultimap.create();
-    private final List<UUID> pendingTeleports = new ArrayList<>();
-    private final Map<UUID, Location> unsafeTpPending = new HashMap<>();
+    private final ConcurrentHashMap<UUID, CopyOnWriteArrayList<TpRequest>> tpRequests = new ConcurrentHashMap<>();
+    private final List<UUID> pendingTeleports = Collections.synchronizedList(new ArrayList<>());
+    private final Map<UUID, Location> unsafeTpPending = Collections.synchronizedMap(new HashMap<>());
 
     public TeleportManager(CoreBukkitPlugin plugin) {
         this.plugin = plugin;
@@ -95,12 +96,15 @@ public class TeleportManager {
             } else {
                 player.sendMessage("§aTéléportation dans " + delay + " secondes. §cNe bougez pas !");
                 pendingTeleports.add(player.getUniqueId());
-                Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (isTeleportWaiting(player.getUniqueId())) {
-                        setLastLocation(player.getUniqueId());
-                        PluginMessageHelper.sendPlayerToServer(player, server);
-                    }
-                }, delay * 20L);
+                plugin.runRegionTask(player.getLocation(), () -> {
+                    RegionizedScheduler scheduler = MultiLib.getRegionScheduler();
+                    scheduler.runDelayed(plugin, player.getLocation(), task -> {
+                        if (isTeleportWaiting(player.getUniqueId())) {
+                            setLastLocation(player.getUniqueId());
+                            PluginMessageHelper.sendPlayerToServer(player, server);
+                        }
+                    }, delay * 20L);
+                });
             }
         }
     }
@@ -139,12 +143,13 @@ public class TeleportManager {
         return pendingTeleports.contains(uuid);
     }
 
-    public ListMultimap<UUID, TpRequest> getTpRequests() {
+    public ConcurrentHashMap<UUID, CopyOnWriteArrayList<TpRequest>> getTpRequests() {
         return tpRequests;
     }
 
+
     public List<TpRequest> getTpRequests(Player player) {
-        return tpRequests.get(player.getUniqueId());
+        return tpRequests.computeIfAbsent(player.getUniqueId(), k -> new CopyOnWriteArrayList<>());
     }
 
     public TpRequest getTpRequestFrom(Player player, UUID from) {
@@ -157,7 +162,7 @@ public class TeleportManager {
     }
 
     public void removeTpRequest(UUID uuid, TpRequest tpRequest) {
-        tpRequests.remove(uuid, tpRequest);
+        tpRequests.getOrDefault(uuid, new CopyOnWriteArrayList<>()).remove(tpRequest);
         plugin.getMessagingManager().sendMessage(CoreChannel.REMOVE_TP_REQUEST_CHANNEL, tpRequest);
     }
 
@@ -168,27 +173,25 @@ public class TeleportManager {
 
         SLocation sloc = teleportToLocation.getLocation();
         Location loc = SLocationUtils.getLocation(sloc);
-        new BukkitRunnable() {
-            int count = 0;
 
-            @Override
-            public void run() {
+        CoreBukkitPlugin.getInstance().runRegionTask(loc, () -> {
+            final UUID playerUUID = teleportToLocation.getUuid();
+            final int[] count = {0};
 
-                Player player = Bukkit.getPlayer(teleportToLocation.getUuid());
-
+            RegionizedScheduler scheduler = MultiLib.getRegionScheduler();
+            scheduler.runAtFixedRate(plugin, loc, task -> {
+                Player player = Bukkit.getPlayer(playerUUID);
                 if (player != null) {
                     tpAsync(player, loc);
-                    cancel();
+                    task.cancel();
                 }
 
-                count++;
-
-                if (count > 20) {
-                    cancel();
+                count[0]++;
+                if (count[0] > 20) {
+                    task.cancel();
                 }
-
-            }
-        }.runTaskTimer(CoreBukkitPlugin.getInstance(), 1L, 1L);
+            }, 1L, 1L);
+        });
     }
 
     public void performTeleportToPlayer(TeleportToPlayer teleportToPlayer) {
@@ -198,26 +201,25 @@ public class TeleportManager {
             return;
         }
 
-        new BukkitRunnable() {
+        CoreBukkitPlugin.getInstance().runRegionTask(target.getLocation(), () -> {
+            RegionizedScheduler scheduler = MultiLib.getRegionScheduler();
+            scheduler.runAtFixedRate(plugin, target.getLocation(), task -> {
 
-            @Override
-            public void run() {
+                Player targetPlayer = Bukkit.getPlayer(teleportToPlayer.getTargetId());
+                Player currentPlayer = Bukkit.getPlayer(teleportToPlayer.getUuid());
 
-                Player target = Bukkit.getPlayer(teleportToPlayer.getTargetId());
-                Player player = Bukkit.getPlayer(teleportToPlayer.getUuid());
-
-                if (target == null) {
-                    cancel();
+                if (targetPlayer == null) {
+                    task.cancel();
                     return;
                 }
 
-                if (player != null) {
-                    tpAsync(player, target.getLocation());
-                    cancel();
+                if (currentPlayer != null) {
+                    tpAsync(currentPlayer, targetPlayer.getLocation());
+                    task.cancel();
                 }
 
-            }
-        }.runTaskTimer(CoreBukkitPlugin.getInstance(), 1L, 1L);
+            }, 1L, 1L);
+        });
     }
 
     public void performRandomTeleport(RandomTeleportMessage rtpMessage) {
@@ -232,28 +234,31 @@ public class TeleportManager {
             default -> rtpMessage.getWorld();
         };
 
-        new BukkitRunnable() {
-            int count = 0;
 
-            @Override
-            public void run() {
+        Player player = Bukkit.getPlayer(rtpMessage.getUuid());
+        if (player == null) {
+            return;
+        }
 
-                Player player = Bukkit.getPlayer(rtpMessage.getUuid());
+        Location playerLocation = player.getLocation();
 
-                if (player != null) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "rtp player " + player.getName() + " " + world);
-                    cancel();
+        CoreBukkitPlugin.getInstance().runRegionTask(playerLocation, () -> {
+            final int[] count = {0};
+
+            RegionizedScheduler scheduler = MultiLib.getRegionScheduler();
+            scheduler.runAtFixedRate(plugin, playerLocation, task -> {
+                Player currentPlayer = Bukkit.getPlayer(rtpMessage.getUuid());
+                if (currentPlayer != null) {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "rtp player " + currentPlayer.getName() + " " + world);
+                    task.cancel();
                 }
 
-                count++;
-
-                if (count > 200) {
-                    cancel();
+                count[0]++;
+                if (count[0] > 200) {
+                    task.cancel();
                 }
-
-            }
-        }.runTaskTimer(CoreBukkitPlugin.getInstance(), 1L, 1L);
-
+            }, 1L, 1L);
+        });
     }
 
 

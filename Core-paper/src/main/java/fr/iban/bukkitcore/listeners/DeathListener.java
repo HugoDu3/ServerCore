@@ -25,7 +25,12 @@ public class DeathListener implements Listener {
 		if(plugin.getServerName() == null) {
 			return;
 		}
-		plugin.getMessagingManager().sendMessage("DeathLocation", new PlayerSLocationMessage(e.getEntity().getUniqueId(), new SLocation(plugin.getServerName(), loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getPitch(), loc.getYaw())));
+		plugin.runRegionTask(loc, () -> {
+			plugin.getMessagingManager().sendMessage("DeathLocation", new PlayerSLocationMessage(
+					player.getUniqueId(),
+					new SLocation(plugin.getServerName(), loc.getWorld().getName(), loc.getX(), loc.getY(), loc.getZ(), loc.getPitch(), loc.getYaw())
+			));
+		});
 	}
 
 }

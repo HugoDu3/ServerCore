@@ -8,12 +8,12 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.List;
 
 public class ActionBarCMD implements CommandExecutor {
-	
-	private final List<String> queue = new ArrayList<>();
+
+	private final List<String> queue = new CopyOnWriteArrayList<>();
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -23,7 +23,7 @@ public class ActionBarCMD implements CommandExecutor {
 				bc.append(arg).append(" ");
 			}
 			String message = bc.toString();
-			
+
 			if(queue.isEmpty()) {
 				sendActionBar(message);
 			}
@@ -31,7 +31,7 @@ public class ActionBarCMD implements CommandExecutor {
 		}
 		return false;
 	}
-	
+
 	private void sendActionBar(String message) {
 		new BukkitRunnable() {
 			int time = 0;

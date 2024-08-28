@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public record PlanQueryAccessor(QueryService queryService) {
@@ -31,9 +32,9 @@ public record PlanQueryAccessor(QueryService queryService) {
         }
     }
 
-    public HashMap<String, Long> getPlayTimes() {
+    public ConcurrentHashMap<String, Long> getPlayTimes() {
         Set<UUID> UUIDList = queryService.getCommonQueries().fetchServerUUIDs();
-        final HashMap<String, Long> serverPlayTimes = new HashMap<>();
+        final ConcurrentHashMap<String, Long> serverPlayTimes = new ConcurrentHashMap<>();
         for (UUID serverUUID : UUIDList) {
             final String serverName = queryService.query(GET_SERVER_NAME_SQL, preparedStatement -> {
                 preparedStatement.setString(1, serverUUID.toString());

@@ -1,6 +1,8 @@
 package fr.iban.bukkitcore;
 
 import com.earth2me.essentials.Essentials;
+import com.github.puregero.multilib.MultiLib;
+import com.github.puregero.multilib.regionized.RegionizedScheduler;
 import fr.iban.bukkitcore.commands.*;
 import fr.iban.bukkitcore.listeners.*;
 import fr.iban.bukkitcore.manager.*;
@@ -13,6 +15,7 @@ import fr.iban.common.data.sql.DbCredentials;
 import fr.iban.common.manager.GlobalLoggerManager;
 import fr.iban.common.manager.TrustedCommandsManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -202,5 +205,16 @@ public final class CoreBukkitPlugin extends JavaPlugin {
 
     public ServerManager getServerManager() {
         return serverManager;
+    }
+
+    /**
+     * Exécute une tâche sur le thread de la région associée à la location spécifiée.
+     *
+     * @param location La location qui détermine le thread de la région.
+     * @param task La tâche à exécuter.
+     */
+    public void runRegionTask(Location location, Runnable task) {
+        RegionizedScheduler regionScheduler = MultiLib.getRegionScheduler();
+        regionScheduler.execute(this, location, task);
     }
 }

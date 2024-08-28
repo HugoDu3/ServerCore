@@ -7,6 +7,7 @@ import fr.iban.common.manager.GlobalLoggerManager;
 import fr.iban.common.messaging.CoreChannel;
 import fr.iban.common.messaging.message.PlayerStringMessage;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -37,7 +38,10 @@ public class JoinQuitListeners implements Listener {
             }
         });
 
-        GlobalLoggerManager.saveLog(plugin.getServerName(), player.getName() + " (" + Objects.requireNonNull(player.getAddress()).getHostString() + ") logged in at " + player.getLocation());
+        Location playerLocation = player.getLocation();
+        plugin.runRegionTask(playerLocation, () -> {
+            GlobalLoggerManager.saveLog(plugin.getServerName(), player.getName() + " (" + Objects.requireNonNull(player.getAddress()).getHostString() + ") logged in at " + playerLocation);
+        });
     }
 
     @EventHandler
@@ -49,7 +53,10 @@ public class JoinQuitListeners implements Listener {
             plugin.getMessagingManager().sendMessage(CoreChannel.LAST_SURVIVAL_SERVER, new PlayerStringMessage(player.getUniqueId(), plugin.getServerName()));
         }
 
-        GlobalLoggerManager.saveLog(plugin.getServerName(), player.getName() + " (" + Objects.requireNonNull(player.getAddress()).getHostString() + ") logged out at " + player.getLocation());
+        Location playerLocation = player.getLocation();
+        plugin.runRegionTask(playerLocation, () -> {
+            GlobalLoggerManager.saveLog(plugin.getServerName(), player.getName() + " (" + Objects.requireNonNull(player.getAddress()).getHostString() + ") logged out at " + playerLocation);
+        });
     }
 
 }

@@ -32,9 +32,12 @@ public class EssentialsListeners implements Listener {
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         IUser user = plugin.getEssentials().getUser(player);
-        if(plugin.getPlayerManager().isVanished(player.getUniqueId()) && !user.isVanished()) {
-            user.setVanished(true);
-        }
+
+        plugin.runRegionTask(player.getLocation(), () -> {
+            if (plugin.getPlayerManager().isVanished(player.getUniqueId()) && !user.isVanished()) {
+                user.setVanished(true);
+            }
+        });
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

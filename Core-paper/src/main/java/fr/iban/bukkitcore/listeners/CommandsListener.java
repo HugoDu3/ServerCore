@@ -15,12 +15,14 @@ import org.bukkit.event.player.PlayerCommandSendEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CommandsListener implements Listener {
 
     private final CoreBukkitPlugin plugin;
-    private final Multimap<UUID, String> approvedCommands = ArrayListMultimap.create();
+    private final ConcurrentHashMap<UUID, Set<String>> approvedCommands = new ConcurrentHashMap<>();
 
     public CommandsListener(CoreBukkitPlugin plugin) {
         this.plugin = plugin;
@@ -34,7 +36,8 @@ public class CommandsListener implements Listener {
             return;
         }
 
-        List<String> allowed = new ArrayList<>(plugin.getTrustedCommandManager().getBukkitPlayerCommands());
+        Set<String> allowed = ConcurrentHashMap.newKeySet();
+        allowed.addAll(plugin.getTrustedCommandManager().getBukkitPlayerCommands());
 
         if (player.hasPermission("servercore.moderation")) {
             allowed.addAll(plugin.getTrustedCommandManager().getBukkitStaffCommands());
@@ -63,8 +66,9 @@ public class CommandsListener implements Listener {
             return;
         }
 
-        if (approvedCommands.get(player.getUniqueId()).contains(command.toLowerCase())) {
-            approvedCommands.remove(player.getUniqueId(), command);
+        approvedCommands.putIfAbsent(player.getUniqueId(), ConcurrentHashMap.newKeySet());
+        if (approvedCommands.get(player.getUniqueId()).contains(command)) {
+            approvedCommands.get(player.getUniqueId()).remove(command);
             return;
         }
         
@@ -77,8 +81,8 @@ public class CommandsListener implements Listener {
                     player.getName() + " (" + ip + ") essaye d'exécuter la commande " + e.getMessage() + ".",
                     result -> {
                         if (result) {
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                approvedCommands.put(player.getUniqueId(), command);
+                            plugin.runRegionTask(player.getLocation(), () -> {
+                                approvedCommands.get(player.getUniqueId()).add(command);
                                 player.chat(e.getMessage());
                             });
                         }

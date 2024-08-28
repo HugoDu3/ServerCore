@@ -8,10 +8,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class BukkitTrustedUserManager extends TrustedUserManager {
 
     private final CoreBukkitPlugin plugin;
+    private final List<TrustedUser> trustedUsers = new CopyOnWriteArrayList<>();
 
     public BukkitTrustedUserManager(CoreBukkitPlugin plugin) {
         this.plugin = plugin;
@@ -20,15 +23,22 @@ public class BukkitTrustedUserManager extends TrustedUserManager {
 
     @Override
     public void loadTrustedUsers() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, super::loadTrustedUsers);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (trustedUsers) {
+                super.loadTrustedUsers();
+            }
+        });
     }
 
     public boolean isTrusted(Player player) {
-        for (TrustedUser user : trustedUsers) {
-            InetSocketAddress inetSocketAddress = player.getAddress();
-            if(inetSocketAddress == null) continue;
-            if(user.getUuid().equals(player.getUniqueId()) && player.getAddress().getHostString().equals(user.getIp())){
-                return true;
+        InetSocketAddress inetSocketAddress = player.getAddress();
+        if (inetSocketAddress == null) return false;
+
+        synchronized (trustedUsers) {
+            for (TrustedUser user : trustedUsers) {
+                if (user.getUuid().equals(player.getUniqueId()) && player.getAddress().getHostString().equals(user.getIp())) {
+                    return true;
+                }
             }
         }
         return false;

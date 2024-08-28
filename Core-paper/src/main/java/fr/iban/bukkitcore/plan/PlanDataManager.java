@@ -7,13 +7,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlanDataManager {
 
     private final CoreBukkitPlugin plugin;
     private long lastPlanFetch;
     private boolean usePlan = false;
-    private Map<String, Long> planPlayTimes = new HashMap<>();
+    private Map<String, Long> planPlayTimes = new ConcurrentHashMap<>();
 
     public PlanDataManager(CoreBukkitPlugin plugin) {
         this.plugin = plugin;
@@ -49,7 +50,7 @@ public class PlanDataManager {
             Optional<PlanQueryAccessor> planHook = new PlanHook().hookIntoPlan();
             planHook.ifPresent(hook -> {
                 usePlan = true;
-                planPlayTimes = hook.getPlayTimes();
+                planPlayTimes = new ConcurrentHashMap<>(hook.getPlayTimes());
                 plugin.getLogger().info("Fetched latest playtime data from Plan");
             });
             if(!usePlan) {

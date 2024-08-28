@@ -12,10 +12,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 public class ApprovalManager implements Listener {
@@ -23,7 +21,7 @@ public class ApprovalManager implements Listener {
     private final CoreBukkitPlugin plugin;
     private final MessagingManager messagingManager;
     private final BukkitTrustedUserManager trustedUserManager;
-    private final List<ApprovalRequest> requests = new ArrayList<>();
+    private final List<ApprovalRequest> requests = new CopyOnWriteArrayList<>();
 
     public ApprovalManager(CoreBukkitPlugin plugin, MessagingManager messagingManager, BukkitTrustedUserManager trustedUserManager) {
         this.plugin = plugin;
@@ -34,7 +32,7 @@ public class ApprovalManager implements Listener {
     }
 
     public List<ApprovalRequest> getRequests() {
-        return requests;
+        return Collections.unmodifiableList(requests);
     }
 
     private ApprovalRequest getRequest(UUID uuid) {

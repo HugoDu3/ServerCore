@@ -3,14 +3,14 @@ package fr.iban.bukkitcore.manager;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import org.bukkit.entity.Player;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RessourcesWorldManager {
 
     private final CoreBukkitPlugin plugin;
-    private final Map<UUID, Long> lastTeleportTime = new HashMap<>();
+    private final Map<UUID, Long> lastTeleportTime = new ConcurrentHashMap<>();
 
     public RessourcesWorldManager(CoreBukkitPlugin plugin) {
         this.plugin = plugin;

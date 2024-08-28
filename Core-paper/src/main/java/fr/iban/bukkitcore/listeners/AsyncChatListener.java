@@ -2,15 +2,14 @@ package fr.iban.bukkitcore.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.bukkitcore.utils.PluginMessageHelper;
+
 
 public class AsyncChatListener implements Listener {
 
@@ -27,7 +26,9 @@ public class AsyncChatListener implements Listener {
 		String message = legacyComponentSerializer.serialize(e.message());
 
 		if(plugin.getTextInputs().containsKey(player.getUniqueId())) {
-			Bukkit.getScheduler().runTask(plugin, () -> plugin.getTextInputs().get(player.getUniqueId()).call(message));
+			plugin.runRegionTask(player.getLocation(), () -> {
+				plugin.getTextInputs().get(player.getUniqueId()).call(message);
+			});
 			e.setCancelled(true);
 			return;
 		}
