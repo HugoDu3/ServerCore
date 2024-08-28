@@ -6,6 +6,7 @@ import fr.iban.survivalcore.event.ItemRepairEvent;
 import fr.iban.survivalcore.tools.SpecialTools;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -15,14 +16,15 @@ import revxrsal.commands.annotation.Subcommand;
 import revxrsal.commands.bukkit.annotation.CommandPermission;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Command("repair")
 public class RepairCMD {
 
     private final SurvivalCorePlugin plugin;
 
-    private final Map<UUID, Long> repairCooldowns = new HashMap<>();
-    private final Map<UUID, Long> repairAllCooldowns = new HashMap<>();
+    private final Map<UUID, Long> repairCooldowns = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> repairAllCooldowns = new ConcurrentHashMap<>();
 
     public RepairCMD(SurvivalCorePlugin plugin) {
         this.plugin = plugin;
@@ -38,7 +40,7 @@ public class RepairCMD {
             return;
         }
 
-        if (isRepairable(item) && repairItem(item)) {
+        if (isRepairable(item) && repairItem(item, player.getLocation())) {
             player.sendMessage(ChatColor.GOLD + "§aRéparation effectuée.");
             repairCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
         } else {
@@ -52,12 +54,12 @@ public class RepairCMD {
         if (!hasRepairAllCooldown(player)) {
             for (ItemStack item : player.getInventory().getContents()) {
                 if (isRepairable(item)) {
-                    repairItem(item);
+                    repairItem(item, player.getLocation());
                 }
             }
             for (ItemStack item : player.getInventory().getArmorContents()) {
                 if (isRepairable(item)) {
-                    repairItem(item);
+                    repairItem(item, player.getLocation());
                 }
             }
             repairAllCooldowns.put(player.getUniqueId(), System.currentTimeMillis());
@@ -75,13 +77,17 @@ public class RepairCMD {
         return false;
     }
 
-    public boolean repairItem(ItemStack item) {
+
+    public boolean repairItem(ItemStack item, Location location) {
         if (item.getItemMeta() instanceof Damageable damageable) {
             ItemRepairEvent event = new ItemRepairEvent(item);
             Bukkit.getPluginManager().callEvent(event);
+
             if (!event.isCancelled()) {
-                damageable.setDamage(0);
-                item.setItemMeta(damageable);
+                plugin.runRegionTask(location, () -> {
+                    damageable.setDamage(0);
+                    item.setItemMeta(damageable);
+                });
                 return true;
             }
         }

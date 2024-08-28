@@ -20,6 +20,8 @@ public class JoinQuitListeners implements Listener {
         Player player = e.getPlayer();
         player.setInvulnerable(true);
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> player.setInvulnerable(false), 200);
+        plugin.runRegionTask(player.getLocation(), () -> {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> player.setInvulnerable(false), 200);
+        });
     }
 }

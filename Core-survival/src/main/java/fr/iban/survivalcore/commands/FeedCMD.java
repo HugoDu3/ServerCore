@@ -2,6 +2,7 @@ package fr.iban.survivalcore.commands;
 
 import com.earth2me.essentials.utils.DateUtil;
 import fr.iban.survivalcore.SurvivalCorePlugin;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import revxrsal.commands.annotation.Command;
 import revxrsal.commands.bukkit.annotation.CommandPermission;
@@ -10,11 +11,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FeedCMD {
 
 	private final SurvivalCorePlugin plugin;
-	private final Map<UUID, Long> cooldowns = new HashMap<>();
+	private final Map<UUID, Long> cooldowns = new ConcurrentHashMap<>();
 
 	public FeedCMD(SurvivalCorePlugin plugin) {
 		this.plugin = plugin;
@@ -23,17 +25,21 @@ public class FeedCMD {
 	@Command("feed")
 	@CommandPermission("servercore.feed")
 	public void feed(Player player) {
-		if(hasCooldown(player)) {
-			return;
-		}
+		Location playerLocation = player.getLocation();
 
-		player.setFoodLevel(20);
-		player.setSaturation(5f);
-		player.sendMessage("§aVous avez été rassasié.");
+		plugin.runRegionTask(playerLocation, () -> {
+			if (hasCooldown(player)) {
+				return;
+			}
 
-		if(getCooldownTime(player) > 0){
-			cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
-		}
+			player.setFoodLevel(20);
+			player.setSaturation(5f);
+			player.sendMessage("§aVous avez été rassasié.");
+
+			if (getCooldownTime(player) > 0) {
+				cooldowns.put(player.getUniqueId(), System.currentTimeMillis());
+			}
+		});
 	}
 
 	private boolean hasCooldown(Player player) {

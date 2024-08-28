@@ -3,6 +3,7 @@ package fr.iban.survivalcore.listeners;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -11,7 +12,7 @@ import org.bukkit.event.raid.RaidTriggerEvent;
 
 public class RaidTriggerListener implements Listener {
 
-	private Map<UUID, Long> cooldown = new HashMap<>();
+	private Map<UUID, Long> cooldown = new ConcurrentHashMap<>();
 
 	@EventHandler
 	public void onRaidTrigger(RaidTriggerEvent e) {

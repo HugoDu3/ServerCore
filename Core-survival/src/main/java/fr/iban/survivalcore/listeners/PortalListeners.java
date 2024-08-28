@@ -1,5 +1,8 @@
 package fr.iban.survivalcore.listeners;
 
+import com.github.puregero.multilib.MultiLib;
+import com.github.puregero.multilib.regionized.RegionizedScheduler;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World.Environment;
 import org.bukkit.block.BlockState;
@@ -18,17 +21,16 @@ public class PortalListeners implements Listener {
 	public void onPortalCreate(PortalCreateEvent e) {
 		if(e.getReason() == CreateReason.FIRE && e.getWorld().getEnvironment() == Environment.NETHER) {
 			if(!e.getBlocks().isEmpty() && e.getBlocks().get(0).getLocation().getY() >= 128) {
-				new BukkitRunnable() {
-					@Override
-					public void run() {
-						for (BlockState block : e.getBlocks()) {
-							if(block.getType() == Material.NETHER_PORTAL) {
-								block.getBlock().breakNaturally();
-								break;
-							}
-						}
+				for (BlockState block : e.getBlocks()) {
+					if (block.getType() == Material.NETHER_PORTAL) {
+						Location blockLocation = block.getLocation();
+						RegionizedScheduler regionScheduler = MultiLib.getRegionScheduler();
+						regionScheduler.runDelayed(SurvivalCorePlugin.getInstance(), blockLocation, task -> {
+							block.getBlock().breakNaturally();
+						}, 6000);
+						break;
 					}
-				}.runTaskLater(SurvivalCorePlugin.getInstance(), 6000);
+				}
 			}
 		}
 	}

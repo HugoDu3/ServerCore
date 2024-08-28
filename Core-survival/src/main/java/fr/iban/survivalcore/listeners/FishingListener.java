@@ -8,10 +8,11 @@ import org.bukkit.event.player.PlayerFishEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class FishingListener implements Listener {
 
-    private final Map<UUID, PlayerFishEvent.State> lastStates = new HashMap<>();
+    private final Map<UUID, PlayerFishEvent.State> lastStates = new ConcurrentHashMap<>();
 
     @EventHandler
     public void onFish(PlayerFishEvent e) {

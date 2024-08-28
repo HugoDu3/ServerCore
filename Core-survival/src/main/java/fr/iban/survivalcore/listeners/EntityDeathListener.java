@@ -154,15 +154,21 @@ public class EntityDeathListener implements Listener {
         CoreBukkitPlugin core = CoreBukkitPlugin.getInstance();
         Player player = e.getEntity();
         Location location = player.getLocation();
-        player.sendMessage("§3§lVous êtes mort à la position suivante: \n" +
-                "§bServeur : §f" + core.getServerName() + "\n" +
-                "§bMonde : §f" + location.getWorld().getName() + "\n" +
-                "§bCoordonnées : X : §f" + (int) location.getX() +
-                " §bY : §f" + (int) location.getY() +
-                " §bZ : §f" + (int) location.getZ());
 
-        if(core.getServerName().equalsIgnoreCase("ressources")) {
-            player.sendMessage(new ComponentBuilder("§b§lVous pouvez vous téléporter à la position de votre dernière téléportation aléatoire en cliquant sur ce message ou en exécutant la commande /lastrtp.").event(ChatUtils.getShowTextHoverEvent("§lClic ici !")).event(ChatUtils.getCommandClickEvent("/lastrtp")).create());
-        }
+        core.runRegionTask(location, () -> {
+            player.sendMessage("§3§lVous êtes mort à la position suivante: \n" +
+                    "§bServeur : §f" + core.getServerName() + "\n" +
+                    "§bMonde : §f" + location.getWorld().getName() + "\n" +
+                    "§bCoordonnées : X : §f" + (int) location.getX() +
+                    " §bY : §f" + (int) location.getY() +
+                    " §bZ : §f" + (int) location.getZ());
+
+            if(core.getServerName().equalsIgnoreCase("ressources")) {
+                player.sendMessage(new ComponentBuilder("§b§lVous pouvez vous téléporter à la position de votre dernière téléportation aléatoire en cliquant sur ce message ou en exécutant la commande /lastrtp.")
+                        .event(ChatUtils.getShowTextHoverEvent("§lClic ici !"))
+                        .event(ChatUtils.getCommandClickEvent("/lastrtp"))
+                        .create());
+            }
+        });
     }
 }

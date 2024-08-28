@@ -1,5 +1,7 @@
 package fr.iban.survivalcore;
 
+import com.github.puregero.multilib.MultiLib;
+import com.github.puregero.multilib.regionized.RegionizedScheduler;
 import fr.iban.bukkitcore.CoreBukkitPlugin;
 import fr.iban.bukkitcore.utils.PluginMessageHelper;
 import fr.iban.survivalcore.commands.*;
@@ -7,6 +9,7 @@ import fr.iban.survivalcore.listeners.*;
 import fr.iban.survivalcore.manager.AnnounceManager;
 import fr.iban.survivalcore.utils.HourlyReward;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Location;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -105,5 +108,16 @@ public final class SurvivalCorePlugin extends JavaPlugin implements Listener {
 
     public AnnounceManager getAnnounceManager() {
         return announceManager;
+    }
+
+    /**
+     * Exécute une tâche sur le thread de la région associée à la location spécifiée.
+     *
+     * @param location La location qui détermine le thread de la région.
+     * @param task La tâche à exécuter.
+     */
+    public void runRegionTask(Location location, Runnable task) {
+        RegionizedScheduler regionScheduler = MultiLib.getRegionScheduler();
+        regionScheduler.execute(this, location, task);
     }
 }

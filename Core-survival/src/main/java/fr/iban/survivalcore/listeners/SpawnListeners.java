@@ -1,5 +1,7 @@
 package fr.iban.survivalcore.listeners;
 
+import fr.iban.bukkitcore.CoreBukkitPlugin;
+import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,8 +16,13 @@ public class SpawnListeners implements Listener {
 			if(e.getEntityType() == EntityType.CAVE_SPIDER) {
 				return;
 			}
-			e.getEntity().setAI(false);
-			e.getEntity().setGravity(true);
+
+			Location location = e.getLocation();
+
+			CoreBukkitPlugin.getInstance().runRegionTask(location, () -> {
+				e.getEntity().setAI(false);
+				e.getEntity().setGravity(true);
+			});
 		}
 	}
 

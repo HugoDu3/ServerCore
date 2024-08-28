@@ -1,6 +1,7 @@
 package fr.iban.survivalcore.listeners;
 
 import fr.iban.survivalcore.SurvivalCorePlugin;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -29,7 +30,12 @@ public class InteractListeners implements Listener {
 				&& clickedBlock.getType() == Material.SPAWNER
 				&& item.getItemMeta() instanceof SpawnEggMeta
 				&& !player.hasPermission("servercore.changespawner")) {
-			e.setCancelled(true);
+
+			Location blockLocation = clickedBlock.getLocation();
+
+			plugin.runRegionTask(blockLocation, () -> {
+				e.setCancelled(true);
+			});
 		}
 	}
 }
